@@ -1,0 +1,153 @@
+name: Fetch road sign SVGs
+
+on:
+  workflow_dispatch:
+    inputs:
+      delay:
+        description: "每个文件下载后的间隔秒数"
+        default: "0.4"
+        required: false
+      limit:
+        description: "每国最多文件数，0=不限"
+        default: "0"
+        required: false
+      countries:
+        description: "试跑用：填国家代码（如 CN）；留空则跑全量 16 组"
+        default: ""
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: ${{ inputs.countries != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch one country
+        run: |
+          python3 tools/fetch_signs.py \
+            --out out \
+            --countries "${{ inputs.countries }}" \
+            --delay "${{ inputs.delay }}" \
+            --limit 20 \
+            --wait 30
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signs-smoke
+          path: out
+          retention-days: 3
+          if-no-files-found: warn
+
+  fetch:
+    if: ${{ inputs.countries == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: east-asia
+            countries: CN,JP,KR,KP,MN,HK,MO,TW
+          - name: southeast-asia
+            countries: SG,MY,TH,VN,ID,PH,KH,LA,MM,BN
+          - name: south-asia
+            countries: IN,PK,BD,LK,NP,BT,MV
+          - name: central-asia
+            countries: KZ,UZ,KG,TJ,TM,AZ,GE,AM
+          - name: west-asia
+            countries: TR,IL,SA,AE,QA,KW,BH,OM,JO,LB,IR,IQ,PS
+          - name: europe-west-1
+            countries: GB,IE,FR,DE
+          - name: europe-west-2
+            countries: IT,ES,PT,NL,BE,LU,CH,AT
+          - name: europe-north
+            countries: DK,SE,NO,FI,IS,EE,LV,LT
+          - name: europe-central
+            countries: PL,CZ,SK,HU,RO,BG,GR,HR,SI,RS,BA,ME,MK,AL
+          - name: europe-east
+            countries: UA,BY,MD,RU,MT,CY,AD,LI,GI,GG,JE,FO,AX
+          - name: africa-north
+            countries: EG,MA,DZ,TN,LY,ZA,NG,KE,GH,ET,TZ,UG
+          - name: africa-south
+            countries: SN,CI,CM,AO,MZ,ZW,BW,NA,MU,SC,LR,MW,ML,MG,LS,SZ,KM,SO,CD,ZM
+          - name: north-america
+            countries: US,CA,MX
+          - name: central-america
+            countries: GT,CR,PA,CU,DO,JM,TT,BS,BB,PR,SV,HN,NI
+          - name: south-america
+            countries: BR,AR,CL,CO,PE,VE,EC,BO,PY,UY,GY,SR
+          - name: oceania
+            countries: AU,NZ,FJ,PG,NC,WS,TO,VU
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch
+        run: |
+          python3 tools/fetch_signs.py \
+            --out out \
+            --countries "${{ matrix.countries }}" \
+            --delay "${{ inputs.delay }}" \
+            --limit "${{ inputs.limit }}" \
+            --wait 30
+          mv out/manifest.json "out/manifest-${{ matrix.name }}.json" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signs-${{ matrix.name }}
+          path: out
+          retention-days: 1
+          if-no-files-found: warn
+
+  bundle:
+    needs: [fetch, smoke]
+    if: ${{ always() && inputs.countries == '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: signs-*
+          merge-multiple: true
+          path: merged
+
+      - name: Merge manifests
+        run: |
+          python3 - <<'PY'
+          import glob, json, os, shutil
+
+          base = "official-road-signs"
+          os.makedirs(base, exist_ok=True)
+
+          if os.path.isdir("merged/assets"):
+              shutil.copytree("merged/assets", os.path.join(base, "assets"), dirs_exist_ok=True)
+
+          seen, rows = set(), []
+          for path in sorted(glob.glob("merged/manifest-*.json")):
+              with open(path, encoding="utf-8") as f:
+                  for row in json.load(f):
+                      key = (row.get("country"), row.get("title"))
+                      if key in seen:
+                          continue
+                      seen.add(key)
+                      rows.append(row)
+
+          with open(os.path.join(base, "manifest.json"), "w", encoding="utf-8") as f:
+              json.dump(rows, f, ensure_ascii=False, indent=2)
+
+          print("merged entries:", len(rows))
+          PY
+          du -sh official-road-signs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: official-road-signs
+          path: official-road-signs
+          retention-days: 14
