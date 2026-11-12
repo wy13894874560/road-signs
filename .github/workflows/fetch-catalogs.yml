@@ -36,9 +36,14 @@ jobs:
               "it": ("en", "Road signs in Italy"),
               "pl": ("en", "Road signs in Poland"),
               "lv": ("en", "Road signs in Latvia"),
-              "lu": ("en", "Road signs in Luxembourg"),
               "mk": ("en", "Road signs in North Macedonia"),
               "lt": ("en", "Road signs in Lithuania"),
+              "lu": ("en", "Road signs in Luxembourg"),
+              "lu_fr": ("fr", "Panneaux de signalisation routière au Luxembourg"),
+              "lu_de": ("de", "Bildtafel der Verkehrszeichen in Luxemburg"),
+              "et": ("et", "Liiklusmärgid"),
+              "et_list": ("et", "Eesti liiklusmärgid"),
+              "et_sign": ("et", "Liiklusmärk"),
           }
 
           def fetch(lang, title):
