@@ -1,0 +1,36 @@
+name: probe-cats
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.parse, urllib.request
+
+          titles = json.load(open("probe_titles.json"))
+          UA = {"User-Agent": "RoadSignLibrary/1.0 (metadata probe)"}
+          for i in range(0, len(titles), 50):
+              batch = titles[i:i + 50]
+              q = {
+                  "action": "query", "format": "json", "formatversion": "2",
+                  "titles": "|".join("File:" + t for t in batch),
+                  "prop": "categories", "clshow": "!hidden", "cllimit": "500",
+              }
+              url = "https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(q)
+              try:
+                  with urllib.request.urlopen(
+                          urllib.request.Request(url, headers=UA), timeout=40) as r:
+                      d = json.load(r)
+              except Exception as e:
+                  print("ERR", type(e).__name__, e)
+                  continue
+              for p in d.get("query", {}).get("pages", []):
+                  cats = [c["title"][9:] for c in p.get("categories", [])]
+                  print("FILE|", p.get("title"), "||", " ; ".join(cats))
+              time.sleep(1)
+          PY
