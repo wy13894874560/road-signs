@@ -34,6 +34,11 @@ jobs:
               "sk": ("en", "Road signs in Slovakia"),
               "za": ("en", "Road signs in South Africa"),
               "it": ("en", "Road signs in Italy"),
+              "pl": ("en", "Road signs in Poland"),
+              "lv": ("en", "Road signs in Latvia"),
+              "lu": ("en", "Road signs in Luxembourg"),
+              "mk": ("en", "Road signs in North Macedonia"),
+              "lt": ("en", "Road signs in Lithuania"),
           }
 
           def fetch(lang, title):
