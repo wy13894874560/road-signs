@@ -24,6 +24,16 @@ jobs:
               "ru": ("ru", "Дорожные знаки России"),
               "gb": ("en", "Road signs in the United Kingdom"),
               "au": ("en", "Road signs in Australia"),
+              "ee": ("en", "Road signs in Estonia"),
+              "br": ("en", "Road signs in Brazil"),
+              "se": ("en", "Road signs in Sweden"),
+              "nl": ("en", "Road signs in the Netherlands"),
+              "hu": ("en", "Road signs in Hungary"),
+              "dk": ("en", "Road signs in Denmark"),
+              "fi": ("en", "Road signs in Finland"),
+              "sk": ("en", "Road signs in Slovakia"),
+              "za": ("en", "Road signs in South Africa"),
+              "it": ("en", "Road signs in Italy"),
           }
           os.makedirs("catalogs", exist_ok=True)
           for key, (lang, title) in pages.items():
