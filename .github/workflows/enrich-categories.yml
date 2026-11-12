@@ -1,0 +1,22 @@
+name: enrich-meta
+
+on:
+  workflow_dispatch:
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch metadata
+        run: python3 tools/gallery/enrich_categories.py fetch --titles titles.json --out meta.json --delay 0.4
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sign-meta
+          path: meta.json
+          retention-days: 7
+          if-no-files-found: warn
